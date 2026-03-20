@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Danke – NFC Visitenkarte</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold: #C9A84C;
+      --gold-light: #E8C97A;
+      --gold-dim: rgba(201,168,76,0.15);
+      --bg: #0A0A0A;
+      --surface: #111111;
+      --border: rgba(201,168,76,0.25);
+      --text: #F0EDE8;
+      --muted: #888;
+      --radius: 16px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── NOISE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    /* ── GOLD GLOW BG ── */
+    .glow-orb {
+      position: fixed;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(201,168,76,0.08) 0%, transparent 70%);
+      top: -150px; left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── LAYOUT ── */
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      text-align: center;
+      padding: 56px 0 48px;
+      animation: fadeUp 0.8s ease both;
+    }
+
+    .nfc-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      background: var(--gold-dim);
+      margin-bottom: 28px;
+      animation: pulse 3s ease infinite;
+    }
+
+    .nfc-icon svg { width: 36px; height: 36px; }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(201,168,76,0.3); }
+      50% { box-shadow: 0 0 0 16px rgba(201,168,76,0); }
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(28px, 6vw, 42px);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 60%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: var(--muted);
+      font-weight: 300;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── DIVIDER ── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 40px 0;
+      opacity: 0.4;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--gold);
+    }
+    .divider-diamond {
+      width: 6px; height: 6px;
+      background: var(--gold);
+      transform: rotate(45deg);
+      flex-shrink: 0;
+    }
+
+    /* ── DANKSAGUNG CARD ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      margin-bottom: 20px;
+      animation: fadeUp 0.8s ease both;
+    }
+
+    .card:nth-child(2) { animation-delay: 0.1s; }
+    .card:nth-child(3) { animation-delay: 0.2s; }
+    .card:nth-child(4) { animation-delay: 0.3s; }
+
+    .card-label {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .card p {
+      font-size: 15px;
+      line-height: 1.8;
+      color: #C8C4BC;
+      font-weight: 300;
+    }
+
+    .card p strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* ── TUTORIAL STEPS ── */
+    .steps {
+      counter-reset: step;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 40px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .step-num {
+      counter-increment: step;
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--gold-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--gold);
+      flex-shrink: 0;
+    }
+
+    .step-content h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .step-content p {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+
+    /* ── APP BADGES ── */
+    .app-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .app-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--gold-light);
+      background: var(--gold-dim);
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .app-badge:hover {
+      background: rgba(201,168,76,0.25);
+      border-color: var(--gold);
+    }
+
+    /* ── CTA ── */
+    .cta-card {
+      background: linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(201,168,76,0.04) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      text-align: center;
+      margin-top: 20px;
+      animation: fadeUp 0.8s 0.35s ease both;
+    }
+
+    .cta-card p {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 20px;
+      line-height: 1.7;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      background: linear-gradient(135deg, var(--gold-light), var(--gold));
+      color: #0A0A0A;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(201,168,76,0.35);
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      text-align: center;
+      margin-top: 48px;
+      font-size: 11px;
+      color: #444;
+      letter-spacing: 0.08em;
+      animation: fadeUp 0.8s 0.4s ease both;
+    }
+
+    .footer span { color: var(--gold); }
+
+    /* ── ANIMATION ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── MOBILE ── */
+    @media (max-width: 480px) {
+      .container { padding: 32px 16px 60px; }
+      .card { padding: 24px 20px; }
+      .hero { padding: 40px 0 32px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="glow-orb"></div>
+
+  <div class="container">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="nfc-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" stroke="#C9A84C" stroke-width="1.2" fill="none"/>
+          <path d="M8.5 8.5C9.8 7.2 11.3 6.5 12 6.5" stroke="#C9A84C" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M6 6C8.2 3.8 10.2 3 12 3" stroke="#C9A84C" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/>
+          <path d="M11 9.5C11.8 8.7 12.5 8.3 13 8.3" stroke="#C9A84C" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>
+          <circle cx="12" cy="13" r="2.5" fill="#C9A84C"/>
+          <path d="M9.5 15.5l-2 2.5" stroke="#C9A84C" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h1>Deine smarte<br/>Visitenkarte ist aktiv.</h1>
+      <p class="subtitle">Handgefertigt · 3D-gedruckt · NFC-programmiert</p>
+    </div>
+
+    <!-- DANKSAGUNG -->
+    <div class="card">
+      <div class="card-label">Danksagung</div>
+      <p>
+        Herzlichen Dank für dein Vertrauen und deinen Kauf! 🎉<br/><br/>
+        Du hältst gerade eine <strong>handgefertigte 3D-gedruckte NFC-Visitenkarte</strong> in den Händen –
+        ein kleines Stück Technologie, das dein Netzwerken auf ein neues Level bringt.<br/><br/>
+        Der NFC-Chip in deiner Karte ist bereits mit meinem <strong>Etsy-Shop</strong> verknüpft –
+        aber das Beste daran: <strong>Du kannst ihn jederzeit selbst umprogrammieren</strong>
+        und auf deine eigene Website, dein LinkedIn-Profil oder deine Kontaktdaten verlinken.
+        Wie das geht, erkläre ich dir unten. ✨
+      </p>
+    </div>
+
+    <div class="divider"><div class="divider-diamond"></div></div>
+
+    <!-- TUTORIAL -->
+    <div class="card">
+      <div class="card-label">NFC umprogrammieren – Tutorial</div>
+
+      <div class="steps">
+
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h3>App herunterladen</h3>
+            <p>Lade die kostenlose App <strong>NFC Tools</strong> auf dein Smartphone. Sie ist für Android und iOS verfügbar.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h3>App öffnen &amp; „Schreiben" wählen</h3>
+            <p>Öffne <strong>NFC Tools</strong>, tippe unten auf den Tab <strong>„Schreiben"</strong> und dann auf <strong>„Eintrag hinzufügen"</strong>.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h3>Inhalt auswählen</h3>
+            <p>Wähle, was du auf den Chip speichern möchtest:</p>
+            <p style="margin-top:8px;">
+              🔗 <strong>URL/Link</strong> – z.B. deine Website oder LinkedIn<br/>
+              📇 <strong>Kontakt (vCard)</strong> – Name, Telefon, E-Mail<br/>
+              📝 <strong>Text</strong> – beliebige Nachricht
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <h3>Karte ans Smartphone halten</h3>
+            <p>Tippe auf <strong>„Schreiben / 1 Eintrag"</strong> und halte deine NFC-Visitenkarte an die <strong>NFC-Antenne</strong> deines Handys (meist Mitte oder obere Rückseite). Der Chip wird in Sekunden beschrieben.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <h3>Fertig! Testen</h3>
+            <p>Halte deine Karte an ein beliebiges NFC-fähiges Smartphone – ganz ohne App, einfach antippen. Die verlinkte Seite öffnet sich sofort. ✅</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- APP BADGES -->
+      <div class="app-row">
+        <a class="app-badge" href="https://play.google.com/store/apps/details?id=com.wakdev.wdnfc" target="_blank">
+          ▶ NFC Tools – Google Play
+        </a>
+        <a class="app-badge" href="https://apps.apple.com/de/app/nfc-tools/id1252962749" target="_blank">
+          ⬡ NFC Tools – App Store
+        </a>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-card">
+      <p>Gefällt dir deine Karte? Hinterlasse gerne eine <strong>Bewertung auf Etsy</strong> –
+      das hilft mir als kleines Business enorm und macht mich ehrlich gesagt sehr glücklich. 🙏</p>
+      <a class="btn" href="https://www.etsy.com/de/shop/DEIN-SHOP-NAME" target="_blank">
+        ★ Jetzt Etsy-Shop besuchen
+      </a>
+    </div>
+
+    <div class="footer">
+      Handgefertigt mit ♥ &nbsp;·&nbsp; <span>3D-Druck &amp; NFC-Technologie</span>
+    </div>
+
+  </div>
+</body>
+</html>
